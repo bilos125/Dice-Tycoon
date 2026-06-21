@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DICE TYCOON</title>
+<style>
+  :root{
+    --bg:#14110f; --felt:#1d2a1f; --gold:#e0a84e; --cream:#ece4d3;
+    --red:#c1543f; --green:#7fa86f; --ink:#0a0908;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--cream);font-family:'Courier New', monospace;
+    display:flex;justify-content:center;padding:20px 10px 60px;}
+  #app{width:100%;max-width:680px;}
+  h1{font-size:28px;letter-spacing:4px;text-align:center;color:var(--gold);margin:0 0 4px;
+    text-shadow:0 0 12px rgba(224,168,78,0.35);}
+  .sub{text-align:center;color:#8a8378;font-size:12px;letter-spacing:2px;margin-bottom:16px;}
+  .panel{background:var(--felt);border:2px solid #33402f;border-radius:10px;padding:14px 16px;
+    margin-bottom:14px;box-shadow:inset 0 0 30px rgba(0,0,0,0.3);}
+  .row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;}
+  .stat{font-size:13px;color:#cfc8b8;}
+  .stat b{color:var(--gold);}
+  .dice-row{display:flex;justify-content:center;gap:10px;margin:18px 0;flex-wrap:wrap;}
+  .die{width:56px;height:56px;background:var(--cream);color:var(--ink);border-radius:10px;
+    display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:bold;
+    position:relative;border:3px solid #00000022;cursor:pointer;transition:transform .12s ease;user-select:none;}
+  .die.locked{background:var(--gold);border-color:#a87a2e;}
+  .die.wild{box-shadow:0 0 0 3px var(--red),0 0 14px var(--red);}
+  .die.rolling{animation:diceRoll .12s linear infinite;}
+  @keyframes diceRoll{
+    0%{transform:rotate(0deg) scale(1);}
+    25%{transform:rotate(-8deg) scale(1.05);}
+    50%{transform:rotate(0deg) scale(0.96);}
+    75%{transform:rotate(8deg) scale(1.05);}
+    100%{transform:rotate(0deg) scale(1);}
+  }
+  .die.settled{animation:diceSettle .25s ease-out;}
+  @keyframes diceSettle{
+    0%{transform:scale(1.25);}
+    60%{transform:scale(0.92);}
+    100%{transform:scale(1);}
+  }
+  .die:active{transform:scale(0.93);}
+  .die .tag{position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:var(--red);color:white;
+    font-size:8px;padding:1px 4px;border-radius:6px;letter-spacing:0.5px;white-space:nowrap;}
+  .die .lockedlabel{position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);background:#333;
+    color:var(--gold);font-size:8px;padding:1px 4px;border-radius:6px;}
+  .sumline{text-align:center;font-size:13px;color:#a7e0a0;margin-top:-8px;margin-bottom:2px;letter-spacing:1px;}
+  .sumline b{color:var(--gold);font-size:16px;}
+  .previewbox{text-align:center;margin-top:8px;padding:8px 10px;border-radius:8px;
+    background:#0f1a10;border:1px dashed var(--green);}
+  .previewbox .big{font-size:22px;color:var(--gold);font-weight:bold;}
+  .previewbox .breakdown{font-size:11px;color:#9fcf95;margin-top:2px;}
+  .controls{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px;}
+  button{font-family:inherit;background:var(--gold);color:var(--ink);border:none;padding:10px 16px;
+    border-radius:6px;font-size:13px;font-weight:bold;letter-spacing:1px;cursor:pointer;transition:filter .1s;}
+  button:hover{filter:brightness(1.1);}
+  button:disabled{background:#555;color:#999;cursor:default;}
+  button.secondary{background:#3a4a36;color:var(--cream);}
+  button.danger{background:var(--red);color:white;}
+  button.small{padding:5px 9px;font-size:11px;}
+  button.ghost{background:transparent;border:1px solid var(--gold);color:var(--gold);}
+  .jokers{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .joker{background:#26201a;border:1px solid var(--gold);border-radius:6px;padding:6px 8px;
+    font-size:11px;max-width:170px;color:var(--cream);}
+  .joker b{color:var(--gold);display:block;font-size:12px;margin-bottom:2px;}
+  .joker .sellrow{margin-top:6px;display:flex;justify-content:space-between;align-items:center;}
+  .hand-readout{text-align:center;font-size:13px;color:#a7e0a0;min-height:18px;margin-top:4px;}
+  .log{font-size:12px;color:#9a9486;max-height:90px;overflow-y:auto;border-top:1px solid #33402f;
+    padding-top:8px;margin-top:10px;}
+  .log div{margin-bottom:3px;}
+  .shop-card{background:#26201a;border:1px solid var(--gold);border-radius:8px;padding:10px;margin-bottom:8px;}
+  .shop-card b{color:var(--gold);}
+  .shop-card p{font-size:12px;margin:4px 0 8px;color:#cfc8b8;}
+  .rarity{font-size:9px;padding:1px 6px;border-radius:8px;margin-left:6px;letter-spacing:0.5px;}
+  .rarity.common{background:#3a4a36;color:var(--cream);}
+  .rarity.rare{background:var(--red);color:white;}
+  .rarity.custom{background:#5b4a8a;color:white;}
+  .rarity.legendary{background:linear-gradient(90deg,#5b4a8a,#c1543f,#e0a84e);color:white;}
+  .scaletag{display:inline-block;background:#0f1a10;border:1px solid var(--green);color:#a7e0a0;
+    font-size:10px;padding:1px 6px;border-radius:8px;margin-top:4px;}
+  .overlay{text-align:center;}
+  .overlay h2{color:var(--gold);letter-spacing:2px;}
+  .badge{display:inline-block;background:var(--red);color:white;font-size:11px;padding:2px 8px;
+    border-radius:10px;margin-left:6px;}
+  .boss{color:var(--red);font-weight:bold;}
+  .megaboss{color:#ff6b4a;font-weight:bold;text-shadow:0 0 6px rgba(255,107,74,0.5);}
+  table.combos{width:100%;border-collapse:collapse;font-size:12px;}
+  table.combos th,table.combos td{padding:4px 6px;text-align:left;border-bottom:1px solid #33402f;}
+  table.combos th{color:var(--gold);font-size:11px;}
+  details.refbox summary{cursor:pointer;color:var(--gold);font-size:13px;margin-bottom:6px;}
+  .encyclopedia{max-height:420px;overflow-y:auto;text-align:left;}
+  .diffcard{background:#26201a;border:2px solid #33402f;border-radius:8px;padding:12px;margin-bottom:8px;
+    text-align:left;cursor:pointer;transition:border-color .15s;}
+  .diffcard:hover{border-color:var(--gold);}
+  .diffcard b{color:var(--gold);font-size:14px;}
+  .diffcard p{font-size:12px;color:#cfc8b8;margin:4px 0 0;}
+  .timerbar{height:8px;background:#33402f;border-radius:4px;overflow:hidden;margin-top:8px;}
+  .timerfill{height:100%;background:var(--red);transition:width 1s linear;}
+  .lives{display:flex;gap:3px;}
+  .heart{color:var(--red);font-size:14px;}
+  .heart.lost{color:#444;}
+  .customrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;}
+  .customrow label{font-size:11px;color:#cfc8b8;min-width:90px;}
+  .customrow select, .customrow input{
+    font-family:inherit;background:#0f1a10;color:var(--cream);border:1px solid #33402f;
+    border-radius:4px;padding:5px 7px;font-size:12px;
+  }
+  .paramfield{display:inline-flex;align-items:center;gap:4px;margin-right:10px;margin-top:4px;}
+  .paramfield label{font-size:10px;color:#9a9486;}
+  .paramfield input{width:60px;font-family:inherit;background:#0f1a10;color:var(--gold);
+    border:1px solid #33402f;border-radius:4px;padding:3px 5px;font-size:11px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <h1>DICE TYCOON</h1>
+  <div class="sub">a roguelite of rolls, locks, and loaded dice</div>
+  <div id="root"></div>
+</div>
+
+<script>
+/* ============== TUNABLE PARAMS (editable in Customize menu) ============== */
+const JOKER_PARAMS = {
+  weighted1:    {bonusPerOne: 9},
+  twinprimes:   {chipsPerPrime: 2},
+  lowball:      {threshold: 10, bonus: 30},
+  oddjob:       {bonus: 40},
+  jackpot:      {bonus: 200},
+  momentum:     {perReroll: 5},
+  minimalist:   {bonus: 50},
+  straightshooter:{bonus: 50},
+  pairbond:     {bonus: 50},
+  voidwalker:   {bonus: 60},
+  lucky7:       {multFactor: 3},
+  gambler:      {multPerOne: 2},
+  highroller:   {threshold: 24, multBonus: 2},
+  evensteven:   {multFactor: 2},
+  hotstreak:    {multPerStreak: 1},
+  shattered:    {multFactor: 3},
+  fullhousefanatic:{multFactor: 2},
+  extraroll:    {bonus: 1},
+  loadeddeck:   {bonus: 1},
+  tokenmint:    {bonus: 1},
+  chainlightning:{perSkip: 1},
+  ridestreak:  {inc: 1},
+  snowball:    {inc: 2},
+  glacier:     {inc: 0.2},
+  vampire:     {inc: 1},
+  collector:   {inc: 5},
+};
+const SCALING_IDS = ['ridestreak','snowball','glacier','vampire','collector'];
+
+const JOKER_POOL = [
+  {id:'mag6', name:'Magnetic 6', desc:'6s also count as 1s for straights.', rarity:'common', cost:6},
+  {id:'lucky7', name:'Lucky 7', desc:'If dice sum is 7, 17 or 27 → xMULT Mult.', rarity:'common', cost:7},
+  {id:'weighted1', name:'Weighted 1', desc:'Each 1 is worth +BONUS chips extra.', rarity:'common', cost:6},
+  {id:'gambler', name:"Gambler's Fallacy", desc:'Any 1 rolled → xMULT Mult (stacks per 1).', rarity:'common', cost:8},
+  {id:'highroller', name:'High Roller', desc:'If dice sum ≥ THRESH → +BONUS Mult.', rarity:'common', cost:6},
+  {id:'lowball', name:'Lowball', desc:'If dice sum ≤ THRESH → +BONUS chips.', rarity:'common', cost:5},
+  {id:'evensteven', name:'Even Steven', desc:'All 5 dice even → xMULT Mult.', rarity:'common', cost:7},
+  {id:'oddjob', name:'Odd Job', desc:'All 5 dice odd → +BONUS chips.', rarity:'common', cost:7},
+  {id:'tokenmint', name:'Token Mint', desc:'+BONUS Luck Token at the start of every round.', rarity:'common', cost:7},
+  {id:'extraroll', name:'Steady Hand', desc:'+BONUS reroll per hand.', rarity:'common', cost:8},
+  {id:'momentum', name:'Momentum', desc:'+RATE chips for every reroll used this hand.', rarity:'common', cost:6},
+  {id:'minimalist', name:'Minimalist', desc:'Score without using a single reroll → +BONUS chips.', rarity:'common', cost:7},
+  {id:'straightshooter', name:'Straight Shooter', desc:'Any straight → +BONUS chips flat.', rarity:'common', cost:8},
+  {id:'pairbond', name:'Pair Bond', desc:'Two Pair hands → +BONUS chips.', rarity:'common', cost:6},
+
+  {id:'shattered', name:'Shattered Die', desc:'Hand is a straight → xMULT Mult.', rarity:'rare', cost:12},
+  {id:'doubleornothing', name:'Double or Nothing', desc:'Coin flip after scoring: heads x2, tails x0.', rarity:'rare', cost:10},
+  {id:'hotstreak', name:'Hot Streak', desc:'+RATE Mult per consecutive Ante beaten.', rarity:'rare', cost:12},
+  {id:'twinprimes', name:'Twin Primes', desc:'A pair of prime dice doubles via RATE per prime value.', rarity:'rare', cost:10},
+  {id:'loadeddeck', name:'Loaded Deck', desc:'+BONUS reroll per hand.', rarity:'rare', cost:9},
+  {id:'jackpot', name:'Jackpot', desc:'Five of a Kind → +BONUS chips on top.', rarity:'rare', cost:13},
+  {id:'wildbond', name:'Wild Bond', desc:"This hand's Wild Die ability is always DOUBLE or LUCKY.", rarity:'rare', cost:11},
+  {id:'chainlightning', name:'Chain Lightning', desc:'Each round skipped, +RATE Chip income on next clear.', rarity:'rare', cost:9},
+  {id:'fullhousefanatic', name:'Full House Fanatic', desc:'Full House → xMULT Mult.', rarity:'rare', cost:11},
+  {id:'voidwalker', name:'Void Walker', desc:'Removes this hand\'s Wild Die, grants +BONUS chips instead.', rarity:'rare', cost:10},
+
+  {id:'ridestreak', name:'Ride the Streak', desc:'Permanently +RATE Mult every hand you score Three of a Kind or better. Resets to 0 if you score Pair or Chance.', rarity:'legendary', cost:14},
+  {id:'snowball', name:'Snowball', desc:'Permanently +RATE chips every time you roll Five of a Kind. Never resets.', rarity:'legendary', cost:14},
+  {id:'glacier', name:'Glacier', desc:'Permanently +RATE Mult every hand your dice sum is even. Never resets — grows forever.', rarity:'legendary', cost:13},
+  {id:'vampire', name:'Vampire', desc:'Permanently +RATE Mult every time you spend a Luck Token to pre-lock a die. Never resets.', rarity:'legendary', cost:13},
+  {id:'collector', name:'Collector', desc:'Permanently +RATE chips every Ante you successfully clear. Never resets — the longer the run, the bigger this gets.', rarity:'legendary', cost:15},
+];
+
+const WILD_ABILITIES = [
+  {id:'double', name:'DOUBLE', tag:'x2 value', desc:'This die counts twice toward chips.'},
+  {id:'wild', name:'WILD', tag:'mirrors best', desc:'Copies the value of your highest other die.'},
+  {id:'volatile', name:'VOLATILE', tag:'auto-reroll', desc:'Rerolls itself every roll, even if locked.'},
+  {id:'lucky', name:'LUCKY', tag:'+25 chips', desc:'Adds flat +25 chips if part of the scoring hand.'},
+  {id:'frozen', name:'FROZEN', tag:'free lock', desc:'Can\'t be rerolled, but never costs a Luck Token to lock.'},
+  {id:'greedy', name:'GREEDY', tag:'+1 Mult', desc:'Adds +1 flat Mult to the final score this hand.'},
+  {id:'cursed', name:'CURSED', tag:'-15 chips', desc:'Subtracts 15 chips from the final score.'},
+  {id:'rich', name:'RICH', tag:'+10 chips', desc:'A small, reliable +10 chips, no conditions.'},
+  {id:'jinxed', name:'JINXED', tag:'±30 chips', desc:'50/50: either +30 chips or -30 chips at scoring.'},
+  {id:'anchor', name:'ANCHOR', tag:'straight helper', desc:'Also counts as neighboring numbers for straights.'},
+];
+
+const BOSS_BLINDS = [
+  {id:'equalizer', name:'The Equalizer', desc:'First roll forces all dice to 3 or 4.'},
+  {id:'oddtax', name:'Odd Tax', desc:'If every die is odd, the hand scores 0.'},
+  {id:'purist', name:'The Purist', desc:'Only "Pair" hands score. Everything else scores 0.'},
+  {id:'mirage', name:'Mirage', desc:'Unlocked dice faces are hidden until you lock them.'},
+  {id:'gravitywell', name:'Gravity Well', desc:'Only 1 reroll this hand, regardless of jokers.'},
+  {id:'taxman', name:'The Taxman', desc:'All chip bonuses from Loaded Dice are halved.'},
+  {id:'silencer', name:'The Silencer', desc:'All Mult bonuses from Loaded Dice are ignored.'},
+];
+
+const HANDS = [
+  {id:'five', name:'Five of a Kind', base:100, test:c=>Object.values(c).some(n=>n===5)},
+  {id:'four', name:'Four of a Kind', base:70, test:c=>Object.values(c).some(n=>n===4)},
+  {id:'largestraight', name:'Large Straight', base:60, test:(c,vals)=>isStraight(vals,5)},
+  {id:'fullhouse', name:'Full House', base:50, test:c=>{const v=Object.values(c);return v.includes(3)&&v.includes(2);}},
+  {id:'smallstraight', name:'Small Straight', base:40, test:(c,vals)=>isStraight(vals,4)},
+  {id:'three', name:'Three of a Kind', base:30, test:c=>Object.values(c).some(n=>n===3)},
+  {id:'twopair', name:'Two Pair', base:20, test:c=>Object.values(c).filter(n=>n===2).length>=2},
+  {id:'pair', name:'Pair', base:10, test:c=>Object.values(c).some(n=>n===2)},
+  {id:'chance', name:'Chance (fallback)', base:'sum of dice', test:()=>false},
+];
+
+function isStraight(vals, len){
+  const u = [...new Set(vals)].sort((a,b)=>a-b);
+  for(let i=0;i<=u.length-len;i++){
+    let ok=true;
+    for(let j=1;j<len;j++){ if(u[i+j]!==u[i]+j){ok=false;break;} }
+    if(ok) return true;
+  }
+  return false;
+}
+
+/* ============== CUSTOM JOKER BUILDER ============== */
+// Limited, combinable building blocks.
+const CONDITIONS = [
+  {id:'sumGTE', label:'Dice sum ≥ N', needsVal:true},
+  {id:'sumLTE', label:'Dice sum ≤ N', needsVal:true},
+  {id:'allEven', label:'All 5 dice even', needsVal:false},
+  {id:'allOdd', label:'All 5 dice odd', needsVal:false},
+  {id:'containsValue', label:'At least one die shows N', needsVal:true, max:6},
+  {id:'handIsPairPlus', label:'Hand is Pair or better (always true once you have a hand)', needsVal:false},
+];
+const EFFECTS = [
+  {id:'addChips', label:'+N chips', needsVal:true},
+  {id:'addMult', label:'+N flat Mult', needsVal:true},
+  {id:'mulMult', label:'×N Mult', needsVal:true},
+];
+let customCounter = 1;
+let customJokers = []; // {id,name,desc,rarity:'custom',cost,condition,conditionVal,effect,effectVal}
+
+function evalCondition(cj, vals, sum){
+  switch(cj.condition){
+    case 'sumGTE': return sum >= cj.conditionVal;
+    case 'sumLTE': return sum <= cj.conditionVal;
+    case 'allEven': return vals.every(v=>v%2===0);
+    case 'allOdd': return vals.every(v=>v%2===1);
+    case 'containsValue': return vals.includes(cj.conditionVal);
+    case 'handIsPairPlus': return true;
+    default: return false;
+  }
+}
+
+/* ============== CONSUMABLE CHARM CARDS (one-time use) ============== */
+const CHARM_POOL = [
+  {id:'mulligan', name:'Mulligan', desc:'Instantly reroll ALL 5 dice for free, even locked ones.', cost:6},
+  {id:'secondwind', name:'Second Wind', desc:'+2 rerolls added to your current hand, right now.', cost:6},
+  {id:'luckinfusion', name:'Luck Infusion', desc:'+3 Luck Tokens instantly.', cost:5},
+  {id:'scoreboost', name:'Score Surge', desc:'+100 flat chips added to your next scored hand.', cost:9},
+  {id:'handupgrade', name:'Hand Upgrade', desc:'Permanently +20 base chips to one hand type, for the rest of the run.', cost:11},
+  {id:'reshuffle', name:'Shop Reshuffle', desc:'Instantly reroll all current shop offers for free.', cost:4},
+  {id:'duplicator', name:'Duplicator', desc:'Duplicate one of your Custom Loaded Dice (effects from custom dice stack; standard ones don\'t, so this only targets custom builds).', cost:13},
+  {id:'safetynet', name:'Safety Net', desc:"If you'd fail this round, this auto-triggers to add +40% to your score before it's checked.", cost:10},
+];
+
+let pendingScoreBoost = 0; // chips queued by Score Surge, consumed on next scoreHand()
+let handBonuses = {}; // {handId: extraBaseChips}, persists for the run
+let pendingSafetyNet = false;
+
+/* ============== STATE ============== */
+let state = null;
+let timerHandle = null;
+
+
+function freshState(carryChips, difficulty){
+  handBonuses = {};
+  pendingScoreBoost = 0;
+  pendingSafetyNet = false;
+  return {
+    screen:'intro',
+    difficulty: difficulty||'medium',
+    round:1,
+    anteTarget:50,
+    metaChips: carryChips||0,
+    hotStreakCount:0,
+    noBuyStreak:0,
+    dice:[1,1,1,1,1],
+    locked:[false,false,false,false,false],
+    hidden:[false,false,false,false,false],
+    rerollsLeft:3,
+    rerollsBase:3,
+    rerollsUsed:0,
+    luckTokens:3,
+    jokers:[],
+    charms:[],
+    charmOffers:[],
+    wildDie:null,
+    bossBlind:null, bossBlind2:null,
+    isMega:false,
+    lastScoreText:'',
+    log:[],
+    shopOffers:[],
+    lives:3,
+    livesMax:3,
+    timeLeft:30,
+    animating:false,
+    rollingIdx:new Set(),
+    settledIdx:new Set(),
+    usedLuckThisHand:false,
+  };
+}
+
+function addLog(msg){ state.log.unshift(msg); state.log = state.log.slice(0,6); }
+function isBossRound(r){ return r % 3 === 0; }
+function isMegaBossRound(r){ return r % 6 === 0; }
+function hasJoker(id){ return state.jokers.some(j=>j.id===id); }
+function getJoker(id){ return state.jokers.find(j=>j.id===id); }
+function priceMult(){ return state.difficulty==='ultimate' ? 3 : 1; }
+
+/* ===== dice roll animation ===== */
+let animHandle = null;
+function clearAnim(){ if(animHandle){ clearInterval(animHandle); animHandle=null; } }
+function animateRoll(indices, finalValues, onDone){
+  clearAnim();
+  if(indices.length===0){ if(onDone) onDone(); return; }
+  state.animating = true;
+  state.rollingIdx = new Set(indices);
+  let ticks = 0;
+  const maxTicks = 7;
+  render();
+  animHandle = setInterval(()=>{
+    ticks++;
+    indices.forEach(i=>{ state.dice[i] = 1+Math.floor(Math.random()*6); });
+    if(ticks>=maxTicks){
+      clearAnim();
+      indices.forEach((i,k)=>{ state.dice[i] = finalValues[k]; });
+      state.animating = false;
+      state.rollingIdx = new Set();
+      state.settledIdx = new Set(indices);
+      render();
+      setTimeout(()=>{ state.settledIdx = new Set(); }, 260);
+      if(onDone) onDone();
+    } else {
+      render();
+    }
+  }, 65);
+}
+
+function clearTimer(){ if(timerHandle){ clearInterval(timerHandle); timerHandle=null; } }
+
+function startTimerIfNeeded(){
+  clearTimer();
+  if(state.difficulty!=='hard') return;
+  state.timeLeft = 30;
+  timerHandle = setInterval(()=>{
+    state.timeLeft--;
+    if(state.timeLeft<=0){
+      if(state.animating){ state.timeLeft = 1; return; } // hold at 1s until animation finishes
+      clearTimer();
+      addLog('⏱ Time\'s up — auto-scoring current hand.');
+      scoreHand();
+      return;
+    }
+    // light DOM update only for timer bar to avoid full re-render cost
+    const bar = document.getElementById('timerfill');
+    const txt = document.getElementById('timertext');
+    if(bar) bar.style.width = (state.timeLeft/30*100)+'%';
+    if(txt) txt.textContent = state.timeLeft+'s';
+  },1000);
+}
+
+function startRound(){
+  const finalDice = rollDice(5);
+  state.locked = [false,false,fal
